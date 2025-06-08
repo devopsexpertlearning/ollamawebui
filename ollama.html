@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ollama Chat UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#2563eb',
+                        'secondary': '#94a3b8',
+                        'accent': '#7c3aed',
+                        'dark': '#0f172a',
+                        'light': '#f8fafc'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="ollama.css">
+    <style>
+        /* Inline spinner style for quick use */
+        .ollama-spinner {
+            display: inline-block;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #2563eb;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: ollama-spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+        @keyframes ollama-spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen" id="body-root">
+    <div class="flex flex-col md:flex-row h-screen">
+        <!-- Sidebar -->
+        <div class="w-full md:w-64 lg:w-72 bg-white p-4 md:p-6 shadow-lg flex flex-col">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-primary flex items-center gap-2">
+                    <i class="fas fa-robot"></i>Ollama Chat
+                </h1>
+                <p class="text-sm text-secondary mt-1">Enhanced with RAG capabilities</p>
+            </div>
+
+            <div class="flex flex-col gap-4 mb-6">
+                <div>
+                    <h2 class="font-semibold text-gray-700 text-sm mb-2">MODEL SELECTION</h2>
+                    <div class="relative">
+                        <select id="model-select" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none">
+                            <!-- Options will be populated by JS -->
+                        </select>
+                        <span id="model-loading-spinner" class="absolute right-10 top-2.5 hidden">
+                            <span class="ollama-spinner"></span>
+                        </span>
+                        <i class="fas fa-chevron-down absolute right-3 top-2.5 text-gray-400 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div>
+                    <h2 class="font-semibold text-gray-700 text-sm mb-2">SETTINGS</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">RAG Mode</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" checked>
+                                <span class="switch"></span>
+                            </label>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Enable Images</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox">
+                                <span class="switch"></span>
+                            </label>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-600">Creative Mode</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox">
+                                <span class="switch"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h2 class="font-semibold text-gray-700 text-sm mb-2">CONNECTED FILES</h2>
+                <div id="connected-files-list" class="space-y-2 max-h-40 overflow-y-auto">
+                    <!-- Connected files will be dynamically inserted here -->
+                </div>
+                <button id="add-files-btn" class="mt-3 w-full bg-gray-50 text-primary hover:bg-gray-100 font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-plus"></i> Add Files
+                    <input type="file" id="add-files-input" class="hidden" multiple>
+                </button>
+            </div>
+
+            <div class="mt-auto">
+                <button id="sidebar-settings-btn" class="flex items-center gap-2 text-gray-500 hover:text-primary">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </button>
+                <button class="mt-2 flex items-center gap-2 text-gray-500 hover:text-primary">
+                    <i class="fas fa-history"></i>
+                    <span>Conversation History</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main chat area -->
+        <div class="flex-1 flex flex-col">
+            <!-- Chat header -->
+            <div class="bg-white p-4 border-b flex items-center justify-between">
+                <div>
+                    <h2 class="font-semibold text-lg" id="chat-title">Research Assistant Chat</h2>
+                    <p class="text-sm text-gray-500">
+                        <span id="chat-model-name">Model</span>
+                        &middot;
+                        <span id="chat-rag-status">RAG status</span>
+                        &middot;
+                        <span id="chat-context-info">Context info</span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="ollama-connection-status" class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1">
+                        <div id="ollama-connection-dot" class="h-2 w-2 bg-red-600 rounded-full"></div>
+                        Disconnected
+                    </div>
+                    <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-6 bg-gradient-to-b from-white to-gray-50">
+                <!-- Chat messages will be dynamically inserted here -->
+            </div>
+
+            <!-- Input area -->
+            <div class="bg-white p-4 border-t">
+                <div id="attachments" class="mb-3 flex flex-wrap gap-2"></div>
+                
+                <div class="relative">
+                    <div class="flex absolute inset-y-0 left-0 items-center pl-3 pointer-events-none text-gray-400">
+                        <i class="fas fa-message"></i>
+                    </div>
+                    <textarea 
+                        id="message-input" 
+                        placeholder="Message Ollama..." 
+                        rows="1"
+                        class="w-full min-h-[40px] max-h-40 p-4 pl-10 text-gray-700 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
+                    ></textarea>
+                    
+                    <div class="absolute right-3 bottom-3 flex gap-1">
+                        <button class="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100" id="image-upload-btn">
+                            <i class="fas fa-image"></i>
+                            <input type="file" id="image-upload" class="hidden" accept="image/*">
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600 p-1.5 rounded-full hover:bg-gray-100" id="file-upload-btn">
+                            <i class="fas fa-paperclip"></i>
+                            <input type="file" id="file-upload" class="hidden">
+                        </button>
+                        <button id="send-btn" class="bg-primary hover:bg-blue-700 text-white p-1.5 rounded-full w-9 h-9 flex items-center justify-center transition">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-2 text-xs text-gray-500 flex justify-between items-center">
+                    <p>Ollama may produce inaccurate information. Double-check critical responses.</p>
+                    <p>Token count: 1,254/4,000</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Ollama Settings</h3>
+                <button id="close-settings-modal" class="text-gray-400 hover:text-gray-700 text-2xl leading-none">&times;</button>
+            </div>
+            <div>
+                <!-- Custom configuration fields go here -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2" for="ollama-endpoint">Ollama Endpoint</label>
+                    <input id="ollama-endpoint" type="text" class="w-full border border-gray-200 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="http://localhost:11434">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-medium mb-2" for="ollama-api-key">API Key</label>
+                    <input id="ollama-api-key" type="password" class="w-full border border-gray-200 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary" placeholder="Optional">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button id="save-settings-btn" class="bg-primary hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium">Save</button>
+                    <button id="cancel-settings-btn" class="border border-gray-300 rounded-lg px-4 py-2 text-gray-700 hover:bg-gray-50 font-medium">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Dialog -->
+    <div id="confirmation-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            <div class="text-center">
+                <div class="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-red-100">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mt-4" id="confirmation-title">Clear Conversation?</h3>
+                <p class="text-gray-500 mt-2" id="confirmation-text">Are you sure you want to clear this conversation? This action cannot be undone.</p>
+                
+                <div class="mt-6 flex gap-3 justify-center">
+                    <button id="cancel-btn" class="px-5 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 font-medium">
+                        Cancel
+                    </button>
+                    <button id="confirm-btn" class="px-5 py-2.5 bg-red-600 hover:bg-red-700 rounded-lg text-white font-medium">
+                        Confirm
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="ollama.js"></script>
+</body>
+</html>
