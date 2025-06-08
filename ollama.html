@@ -102,19 +102,6 @@
 
             <div class="flex flex-col gap-4 mb-6">
                 <div>
-                    <h2 class="font-semibold text-gray-700 text-sm mb-2">MODEL SELECTION</h2>
-                    <div class="relative">
-                        <select id="model-select" class="w-full bg-gray-50 border border-gray-200 rounded-lg py-2 px-3 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none">
-                            <!-- Options will be populated by JS -->
-                        </select>
-                        <span id="model-loading-spinner" class="absolute right-10 top-2.5 hidden">
-                            <span class="ollama-spinner"></span>
-                        </span>
-                        <i class="fas fa-chevron-down absolute right-3 top-2.5 text-gray-400 pointer-events-none"></i>
-                    </div>
-                </div>
-
-                <div>
                     <h2 class="font-semibold text-gray-700 text-sm mb-2">SETTINGS</h2>
                     <div class="space-y-3">
                         <div class="flex justify-between items-center">
@@ -253,76 +240,69 @@
     <script>
     // JavaScript code for Ollama Chat UI with multi-chat tabs
     document.addEventListener('DOMContentLoaded', function() {
-        // Model selection and settings logic
-        const modelSelect = document.getElementById('model-select');
-        const modelLoadingSpinner = document.getElementById('model-loading-spinner');
+        // Endpoint and settings logic
         const endpointInput = document.getElementById('ollama-endpoint');
         const connectedFilesList = document.getElementById('connected-files-list');
         const addFilesBtn = document.getElementById('add-files-btn');
         const addFilesInput = document.getElementById('add-files-input');
         let ollamaEndpoint = "";
         let fetchTimeout = null;
-        let selectedModel = "";
         let modelsLoaded = false;
-        let lastOllamaEndpoint = ""; // Add this at the top with other let variables
+        let lastOllamaEndpoint = "";
+        let availableModels = [];
 
-        function populateModelSelect(models, selected) {
+        function populateModelSelect(selectElem, models, selected) {
             if (!models || models.length === 0) {
-                modelSelect.innerHTML = `<option>None</option>`;
-                selectedModel = "";
+                selectElem.innerHTML = `<option>None</option>`;
                 return;
             }
-            modelSelect.innerHTML = models.map(m =>
+            selectElem.innerHTML = models.map(m =>
                 `<option value="${m.value || m.name}">${m.name}</option>`
             ).join('');
             if (selected) {
-                modelSelect.value = selected;
-                selectedModel = selected;
+                selectElem.value = selected;
             } else {
-                modelSelect.selectedIndex = 0;
-                selectedModel = modelSelect.value;
+                selectElem.selectedIndex = 0;
             }
         }
-        function showNoneAddEndpoint() {
-            modelSelect.innerHTML = `<option>None (add Ollama endpoint)</option>`;
+        function showNoneAddEndpoint(selectElem) {
+            selectElem.innerHTML = `<option>None (add Ollama endpoint)</option>`;
         }
-        function fetchOllamaModels(endpoint) {
+        function fetchOllamaModels(endpoint, callback) {
             if (!endpoint) {
-                showNoneAddEndpoint();
+                callback([]);
                 return;
             }
-            if (modelsLoaded) return;
-            modelSelect.innerHTML = `<option>Loading...</option>`;
-            modelLoadingSpinner.classList.remove('hidden');
+            if (modelsLoaded && availableModels.length > 0) {
+                callback(availableModels);
+                return;
+            }
             if (fetchTimeout) clearTimeout(fetchTimeout);
             let didTimeout = false;
             fetchTimeout = setTimeout(() => {
                 didTimeout = true;
-                modelLoadingSpinner.classList.add('hidden');
-                showNoneAddEndpoint();
+                callback([]);
             }, 10000);
             fetch(endpoint + '/api/tags')
                 .then(res => res.json())
                 .then(data => {
                     if (didTimeout) return;
                     clearTimeout(fetchTimeout);
-                    modelLoadingSpinner.classList.add('hidden');
                     if (data && Array.isArray(data.models) && data.models.length > 0) {
-                        const ollamaModels = data.models.map(m => ({
+                        availableModels = data.models.map(m => ({
                             name: m.name,
                             value: m.name
                         }));
-                        populateModelSelect(ollamaModels);
                         modelsLoaded = true;
+                        callback(availableModels);
                     } else {
-                        modelSelect.innerHTML = `<option>None</option>`;
+                        callback([]);
                     }
                 })
                 .catch(() => {
                     if (didTimeout) return;
                     clearTimeout(fetchTimeout);
-                    modelLoadingSpinner.classList.add('hidden');
-                    modelSelect.innerHTML = `<option>None</option>`;
+                    callback([]);
                 });
         }
 
@@ -401,21 +381,6 @@
             showNoneAddEndpoint();
             updateOllamaConnectionStatus(false);
         }
-        modelSelect.addEventListener('change', function() {
-            selectedModel = modelSelect.value;
-        });
-
-        // File upload logic for sidebar
-        addFilesBtn.addEventListener('click', () => addFilesInput.click());
-        addFilesInput.addEventListener('change', function() {
-            connectedFilesList.innerHTML = '';
-            Array.from(addFilesInput.files).forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-2 bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs';
-                div.innerHTML = `<i class="fas fa-file text-gray-400"></i> ${file.name}`;
-                connectedFilesList.appendChild(div);
-            });
-        });
 
         // --- Multi-Chat System ---
         const newChatBtn = document.getElementById('new-chat-btn');
@@ -479,29 +444,29 @@
             activeChatId = chatId;
         }
 
-        // Replace addMessageToChat with user on left and assistant on right
+        // Replace addMessageToChat with OpenWebUI-like bubbles
         function addMessageToChat(chatMessages, message, sender) {
             if (!message) return;
             const messageDiv = document.createElement('div');
-            messageDiv.className = `flex w-full gap-3 mb-4 ${sender === 'user' ? 'justify-start' : 'justify-end'}`;
+            messageDiv.className = `flex w-full gap-3 mb-4 ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
             if (sender === 'user') {
                 messageDiv.innerHTML = `
-                    <div class="flex items-end gap-3 w-full max-w-3xl">
+                    <div class="flex flex-row-reverse items-end gap-3 w-full max-w-3xl">
                         <div class="flex-shrink-0 w-8 h-8 bg-primary/20 flex items-center justify-center rounded-full">
                             <i class="fas fa-user text-primary"></i>
                         </div>
-                        <div class="bg-primary text-white rounded-2xl px-4 py-3 shadow-md max-w-2xl w-fit text-base break-words" style="border-bottom-left-radius:0.5rem;">
+                        <div class="bg-primary text-white rounded-2xl px-4 py-3 shadow-md max-w-2xl w-full text-base break-words" style="border-bottom-right-radius:0.5rem;">
                             <span>${escapeHtml(message)}</span>
                         </div>
                     </div>
                 `;
             } else {
                 messageDiv.innerHTML = `
-                    <div class="flex flex-row-reverse items-end gap-3 w-full max-w-3xl">
+                    <div class="flex items-end gap-3 w-full max-w-3xl">
                         <div class="flex-shrink-0 w-8 h-8 bg-primary/10 flex items-center justify-center rounded-full">
                             <i class="fas fa-robot text-primary"></i>
                         </div>
-                        <div class="bg-gray-50 rounded-2xl px-4 py-3 shadow-md max-w-2xl w-fit text-base markdown-body" style="border-bottom-right-radius:0.5rem;">
+                        <div class="bg-gray-50 rounded-2xl px-4 py-3 shadow-md max-w-2xl w-full text-base markdown-body" style="border-bottom-left-radius:0.5rem;">
                             <span>${escapeHtml(message)}</span>
                         </div>
                     </div>
@@ -531,7 +496,22 @@
             const chatWindow = document.createElement('div');
             chatWindow.className = 'chat-window animate-fade-in flex flex-col h-[80vh]';
             chatWindow.style.display = 'none';
+
+            // Chat window header with model select (like OpenWebUI/DeepSeek/ChatGPT)
             chatWindow.innerHTML = `
+                <div class="flex items-center gap-3 px-4 pt-4 pb-2 border-b bg-white/80 sticky top-0 z-10" style="backdrop-filter: blur(2px);">
+                    <span class="font-semibold text-base text-gray-800 flex-1 truncate">Chat #${chatCount}</span>
+                    <div class="flex items-center gap-2">
+                        <label for="model-select-${chatId}" class="text-xs text-gray-500">Model:</label>
+                        <div class="relative">
+                            <select id="model-select-${chatId}" class="bg-gray-50 border border-gray-200 rounded-md py-1 pl-2 pr-7 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent appearance-none min-w-[8rem]"></select>
+                            <span id="model-loading-spinner-${chatId}" class="absolute right-7 top-1.5 hidden">
+                                <span class="ollama-spinner" style="width:1rem;height:1rem;"></span>
+                            </span>
+                            <i class="fas fa-chevron-down absolute right-2 top-2 text-gray-400 pointer-events-none text-xs"></i>
+                        </div>
+                    </div>
+                </div>
                 <div class="flex-1 overflow-y-auto mb-4 px-2 py-4 space-y-2" id="chat-messages-${chatId}"></div>
                 <div class="flex gap-2 items-end sticky bottom-0 bg-white pt-2 pb-4 px-2 z-10 shadow-lg rounded-xl" style="backdrop-filter: blur(2px);">
                     <textarea id="message-input-${chatId}" rows="1" placeholder="Type your message..." class="flex-1 resize-none border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-gray-50"></textarea>
@@ -541,23 +521,39 @@
                 </div>
             `;
             multiChatContainer.appendChild(chatWindow);
+
             // Create tab
             const tab = createChatTab(chatId, `Chat #${chatCount}`);
-            // Store chat state
-            chats.push({ id: chatId, window: chatWindow, tab });
-            // Set active
+            chats.push({ id: chatId, window: chatWindow, tab, selectedModel: null });
             setActiveChat(chatId);
             chatWindow.style.display = 'flex';
-            // Add send logic
+
+            // Now select elements from the DOM
+            const modelSelect = chatWindow.querySelector(`#model-select-${chatId}`);
+            const modelLoadingSpinner = chatWindow.querySelector(`#model-loading-spinner-${chatId}`);
             const messageInput = chatWindow.querySelector(`#message-input-${chatId}`);
             const chatMessages = chatWindow.querySelector(`#chat-messages-${chatId}`);
             const sendBtn = chatWindow.querySelector(`#send-btn-${chatId}`);
-            let isStreaming = false;
-            let currentController = null;
+
+            // Per-chat model select logic
+            modelLoadingSpinner.classList.remove('hidden');
+            fetchOllamaModels(ollamaEndpoint, function(models) {
+                modelLoadingSpinner.classList.add('hidden');
+                if (models.length === 0) {
+                    showNoneAddEndpoint(modelSelect);
+                } else {
+                    populateModelSelect(modelSelect, models);
+                    const chatObj = chats.find(c => c.id === chatId);
+                    if (chatObj) chatObj.selectedModel = modelSelect.value;
+                }
+            });
+            modelSelect.addEventListener('change', function() {
+                const chatObj = chats.find(c => c.id === chatId);
+                if (chatObj) chatObj.selectedModel = modelSelect.value;
+            });
 
             // --- Scroll to bottom button logic ---
             let autoScroll = true;
-            // Create scroll-to-bottom button
             const scrollBtn = document.createElement('button');
             scrollBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Scroll to bottom';
             scrollBtn.className = 'fixed left-1/2 -translate-x-1/2 bottom-24 z-20 bg-primary text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 transition opacity-0 pointer-events-none';
@@ -584,7 +580,6 @@
             }
             scrollBtn.onclick = scrollToBottom;
             chatMessages.addEventListener('scroll', function() {
-                // If user is near the bottom, hide button and enable auto-scroll
                 const atBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 40;
                 if (atBottom) {
                     autoScroll = true;
@@ -597,27 +592,22 @@
             // --- End scroll to bottom logic ---
 
             function renderWithCodeBlocks(text, container, streaming = false) {
-                // Use marked to parse markdown and highlight.js for code
                 let html = marked.parse(text, {
                     breaks: true,
                     gfm: true,
                     highlight: function(code, lang) {
-                        // Always return raw code, let highlight.js handle DOM highlighting
                         return code;
                     }
                 });
-                // Add blinking cursor if streaming
                 if (streaming) {
                     html += `<span class="blinking-cursor" style="display:inline-block;width:1ch;">&#9608;</span>`;
                 }
                 container.innerHTML = html;
-                // Highlight code blocks after DOM insertion
                 if (window.hljs) {
                     container.querySelectorAll('pre code').forEach(block => {
                         hljs.highlightElement(block);
                     });
                 }
-                // Add copy buttons to code blocks
                 container.querySelectorAll('pre').forEach(pre => {
                     if (pre.querySelector('.copy-btn')) return;
                     const btn = document.createElement('button');
@@ -642,29 +632,32 @@
                 });
             }
 
+            let isStreaming = false;
+            let currentController = null;
+
             async function handleSend() {
                 const message = messageInput.value.trim();
                 if (!message || isStreaming) return;
                 addMessageToChat(chatMessages, message, 'user');
                 messageInput.value = '';
                 messageInput.style.height = 'auto';
+                const chatObj = chats.find(c => c.id === chatId);
+                const selectedModel = chatObj && chatObj.selectedModel;
                 if (!ollamaEndpoint || !selectedModel) return;
-                // Change send button to cancel icon
                 sendBtn.innerHTML = '<i class="fas fa-times"></i>';
                 isStreaming = true;
                 sendBtn.title = 'Cancel response';
                 sendBtn.classList.remove('bg-primary', 'hover:bg-blue-700');
                 sendBtn.classList.add('bg-red-500', 'hover:bg-red-700');
 
-                // OpenWebUI-like assistant bubble
                 const assistantDiv = document.createElement('div');
-                assistantDiv.className = "flex w-full gap-3 mb-4 justify-end";
+                assistantDiv.className = "flex w-full gap-3 mb-4 justify-start";
                 assistantDiv.innerHTML = `
-                    <div class="flex flex-row-reverse items-end gap-3 w-full max-w-3xl">
+                    <div class="flex items-end gap-3 w-full max-w-3xl">
                         <div class="flex-shrink-0 w-8 h-8 bg-primary/10 flex items-center justify-center rounded-full">
                             <i class="fas fa-robot text-primary"></i>
                         </div>
-                        <div class="bg-gray-50 rounded-2xl px-4 py-3 shadow-md max-w-2xl w-fit text-base markdown-body" style="border-bottom-right-radius:0.5rem;">
+                        <div class="bg-gray-50 rounded-2xl px-4 py-3 shadow-md max-w-2xl w-full text-base markdown-body" style="border-bottom-left-radius:0.5rem;">
                             <div class="text-gray-700 mt-1" style="min-height:1.5em;"><span class="ollama-assistant-stream"></span></div>
                         </div>
                     </div>
