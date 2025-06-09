@@ -5,23 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ollama Chat UI</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Removed custom Tailwind config script -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'primary': '#2563eb',
-                        'secondary': '#94a3b8',
-                        'accent': '#7c3aed',
-                        'dark': '#0f172a',
-                        'light': '#f8fafc'
-                    }
-                }
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="ollama.css">
     <style>
         /* Inline spinner style for quick use */
         .ollama-spinner {
@@ -84,15 +69,47 @@
             color: #2563eb;
             text-decoration: underline;
         }
+        /* Add dark theme overrides */
+        html.dark {
+            background: #181c24;
+        }
+        body.dark, html.dark body {
+            background: #181c24;
+            color: #e5e7eb;
+        }
+        .dark .bg-white { background-color: #23272f !important; }
+        .dark .bg-gray-50, .dark .bg-gradient-to-br, .dark .bg-gradient-to-r { background-color: #181c24 !important; }
+        .dark .text-gray-700, .dark .text-gray-800 { color: #e5e7eb !important; }
+        .dark .text-gray-500 { color: #a1a1aa !important; }
+        .dark .border-gray-200 { border-color: #23272f !important; }
+        .dark .bg-primary-10 { background-color: #2563eb22 !important; }
+        .dark .bg-primary-20 { background-color: #2563eb33 !important; }
+        .dark .bg-gray-100 { background-color: #23272f !important; }
+        .dark .bg-gray-50 { background-color: #181c24 !important; }
+        .dark .bg-gray-200 { background-color: #23272f !important; }
+        .dark .bg-gray-900 { background-color: #0f172a !important; }
+        .dark .markdown-body { color: #e5e7eb; }
+        .dark .markdown-body pre { background: #23272f !important; }
+        .dark .markdown-body code { background: #23272f; color: #7c3aed; }
+        .dark .shadow-lg, .dark .shadow-md { box-shadow: 0 2px 8px 0 #0006 !important; }
+        .dark .border { border-color: #23272f !important; }
+        .dark .bg-white-80 { background-color: #23272fcc !important; }
+        .dark .bg-red-100 { background-color: #7f1d1d22 !important; }
+        .dark .text-red-800 { color: #fecaca !important; }
+        .dark .bg-green-100 { background-color: #16653422 !important; }
+        .dark .text-green-800 { color: #bbf7d0 !important; }
+        .dark .bg-primary { background-color: #2563eb !important; }
+        .dark .text-primary { color: #60a5fa !important; }
+        .dark .bg-gray-900 { background-color: #181c24 !important; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 </head>
-<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen" id="body-root">
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 min-h-screen" id="body-root">
     <div class="flex flex-col md:flex-row h-screen">
         <!-- Sidebar -->
-        <div class="w-full md:w-64 lg:w-72 bg-white p-4 md:p-6 shadow-lg flex flex-col">
+        <div class="w-full md:w-64 lg:w-72 bg-white dark:bg-gray-900 p-4 md:p-6 shadow-lg flex flex-col">
             <div class="mb-6">
                 <h1 class="text-2xl font-bold text-primary flex items-center gap-2">
                     <i class="fas fa-robot"></i>Ollama Chat
@@ -155,7 +172,7 @@
         <!-- Main chat area -->
         <div class="flex-1 flex flex-col">
             <!-- Chat header -->
-            <div class="bg-white p-4 border-b flex items-center justify-between">
+            <div class="bg-white dark:bg-gray-900 p-4 border-b flex items-center justify-between">
                 <div>
                     <h2 class="font-semibold text-lg" id="chat-title">Research Assistant Chat</h2>
                     <p class="text-sm text-gray-500">
@@ -171,20 +188,37 @@
                         <div id="ollama-connection-dot" class="h-2 w-2 bg-red-600 rounded-full"></div>
                         Disconnected
                     </div>
+                    <!-- Theme Switcher Dropdown -->
+                    <div class="relative group">
+                        <button id="theme-dropdown-btn" class="bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 p-2 rounded-full flex items-center justify-center text-gray-500 dark:text-gray-300 transition" title="Theme">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <div id="theme-dropdown" class="hidden group-hover:flex flex-col absolute right-0 mt-2 w-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50">
+                            <button id="theme-light-btn" class="theme-btn flex items-center gap-2 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <i class="fas fa-sun"></i> Light
+                            </button>
+                            <button id="theme-dark-btn" class="theme-btn flex items-center gap-2 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <i class="fas fa-moon"></i> Dark
+                            </button>
+                            <button id="theme-system-btn" class="theme-btn flex items-center gap-2 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                <i class="fas fa-desktop"></i> System
+                            </button>
+                        </div>
+                    </div>
                     <button class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full">
                         <i class="fas fa-ellipsis-h"></i>
                     </button>
                 </div>
             </div>
             <!-- Chat Tabs Bar -->
-            <nav id="chat-tabs-bar" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+            <nav id="chat-tabs-bar" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-b">
                 <!-- Tabs will be inserted by JS -->
                 <button id="new-chat-btn" class="ml-auto flex items-center gap-1 text-primary hover:bg-gray-100 px-3 py-1 rounded transition">
                     <i class="fas fa-plus"></i> New Chat
                 </button>
             </nav>
             <!-- Multi-chat container -->
-            <section id="multi-chat-container" class="flex-1 relative overflow-y-auto bg-gradient-to-br from-white to-gray-50">
+            <section id="multi-chat-container" class="flex-1 relative overflow-y-auto bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
                 <!-- Chat windows will be dynamically inserted here -->
             </section>
         </div>
@@ -240,6 +274,11 @@
     <script>
     // JavaScript code for Ollama Chat UI with multi-chat tabs
     document.addEventListener('DOMContentLoaded', function() {
+        // --- Assign chatTabsBar, newChatBtn, and multiChatContainer ---
+        const chatTabsBar = document.getElementById('chat-tabs-bar');
+        let newChatBtn = document.getElementById('new-chat-btn'); // Use let so we can reassign
+        const multiChatContainer = document.getElementById('multi-chat-container');
+
         // Endpoint and settings logic
         const endpointInput = document.getElementById('ollama-endpoint');
         const connectedFilesList = document.getElementById('connected-files-list');
@@ -249,7 +288,50 @@
         let fetchTimeout = null;
         let modelsLoaded = false;
         let lastOllamaEndpoint = "";
-        let availableModels = [];
+        let availableModels = [];        // Function to update Ollama endpoint consistently
+        function updateOllamaEndpoint(newEndpoint) {
+            newEndpoint = newEndpoint.trim().replace(/\/$/, '');
+            if (newEndpoint !== lastOllamaEndpoint) {
+                ollamaEndpoint = newEndpoint;
+                lastOllamaEndpoint = newEndpoint;
+                localStorage.setItem('ollama-endpoint', newEndpoint);
+                
+                // Also save API key if provided
+                const apiKey = document.getElementById('ollama-api-key').value;
+                if (apiKey) {
+                    localStorage.setItem('ollama-api-key', apiKey);
+                }
+                
+                modelsLoaded = false;
+                
+                if (!ollamaEndpoint) {
+                    showNoneAddEndpoint(document.querySelector('select'));
+                    updateOllamaConnectionStatus(false);
+                    return;
+                }
+                
+                fetchOllamaModels(ollamaEndpoint);
+                checkOllamaConnection(ollamaEndpoint);
+                
+                // Update any existing chat model selects
+                chats.forEach(chat => {
+                    const modelSelect = document.querySelector(`#model-select-${chat.id}`);
+                    if (modelSelect) {
+                        const modelLoadingSpinner = document.querySelector(`#model-loading-spinner-${chat.id}`);
+                        if (modelLoadingSpinner) modelLoadingSpinner.classList.remove('hidden');
+                        fetchOllamaModels(ollamaEndpoint, function(models) {
+                            if (modelLoadingSpinner) modelLoadingSpinner.classList.add('hidden');
+                            if (models.length === 0) {
+                                showNoneAddEndpoint(modelSelect);
+                            } else {
+                                populateModelSelect(modelSelect, models);
+                                chat.selectedModel = modelSelect.value;
+                            }
+                        });
+                    }
+                });
+            }
+        }
 
         function populateModelSelect(selectElem, models, selected) {
             if (!models || models.length === 0) {
@@ -264,11 +346,10 @@
             } else {
                 selectElem.selectedIndex = 0;
             }
-        }
-        function showNoneAddEndpoint(selectElem) {
+        }        function showNoneAddEndpoint(selectElem) {
+            if (!selectElem) return;
             selectElem.innerHTML = `<option>None (add Ollama endpoint)</option>`;
-        }
-        function fetchOllamaModels(endpoint, callback) {
+        }        function fetchOllamaModels(endpoint, callback) {
             if (!endpoint) {
                 callback([]);
                 return;
@@ -283,7 +364,18 @@
                 didTimeout = true;
                 callback([]);
             }, 10000);
-            fetch(endpoint + '/api/tags')
+            
+            // Get API key from localStorage if available
+            const apiKey = localStorage.getItem('ollama-api-key');
+            const headers = { 'Content-Type': 'application/json' };
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+            
+            fetch(endpoint + '/api/tags', { 
+                method: 'GET',
+                headers: headers
+            })
                 .then(res => res.json())
                 .then(data => {
                     if (didTimeout) return;
@@ -323,13 +415,23 @@
                 ollamaConnectionDot.classList.add('bg-red-600');
                 ollamaConnectionStatus.innerHTML = `<div id="ollama-connection-dot" class="h-2 w-2 bg-red-600 rounded-full"></div> Disconnected`;
             }
-        }
-        function checkOllamaConnection(endpoint) {
+        }        function checkOllamaConnection(endpoint) {
             if (!endpoint) {
                 updateOllamaConnectionStatus(false);
                 return;
             }
-            fetch(endpoint + '/api/tags', { method: 'GET' })
+            
+            // Get API key from localStorage if available
+            const apiKey = localStorage.getItem('ollama-api-key');
+            const headers = {};
+            if (apiKey) {
+                headers['Authorization'] = `Bearer ${apiKey}`;
+            }
+            
+            fetch(endpoint + '/api/tags', { 
+                method: 'GET',
+                headers: headers
+            })
                 .then(res => res.ok)
                 .then(ok => updateOllamaConnectionStatus(ok))
                 .catch(() => updateOllamaConnectionStatus(false));
@@ -350,42 +452,26 @@
         function closeSettings() {
             settingsModal.classList.add('hidden');
             settingsModal.classList.remove('flex');
-        }
-        saveSettingsBtn.addEventListener('click', () => {
+        }        saveSettingsBtn.addEventListener('click', () => {
             closeSettings();
             const newEndpoint = endpointInput.value.trim().replace(/\/$/, '');
-            // Only reload models and update endpoint if it actually changed
-            if (newEndpoint !== lastOllamaEndpoint) {
-                ollamaEndpoint = newEndpoint;
-                lastOllamaEndpoint = newEndpoint;
-                modelsLoaded = false;
-                if (!ollamaEndpoint) {
-                    showNoneAddEndpoint();
-                    updateOllamaConnectionStatus(false);
-                    return;
-                }
-                fetchOllamaModels(ollamaEndpoint);
-                checkOllamaConnection(ollamaEndpoint);
-            }
-            // Do NOT reload or reset anything else here
-        });
-        endpointInput.addEventListener('input', function() {
+            updateOllamaEndpoint(newEndpoint);
+        });        endpointInput.addEventListener('input', function() {
             modelsLoaded = false;
         });
-        ollamaEndpoint = endpointInput.value.trim().replace(/\/$/, '');
-        lastOllamaEndpoint = ollamaEndpoint;
-        if (ollamaEndpoint) {
-            fetchOllamaModels(ollamaEndpoint);
-            checkOllamaConnection(ollamaEndpoint);
-        } else {
-            showNoneAddEndpoint();
-            updateOllamaConnectionStatus(false);
-        }
+        
+        // Initialize Ollama endpoint and API key from localStorage
+        const savedEndpoint = localStorage.getItem('ollama-endpoint') || "";
+        const savedApiKey = localStorage.getItem('ollama-api-key') || "";
+        
+        // Set input values
+        endpointInput.value = savedEndpoint;
+        document.getElementById('ollama-api-key').value = savedApiKey;
+        
+        // Use the function to set the endpoint consistently
+        updateOllamaEndpoint(savedEndpoint);
 
         // --- Multi-Chat System ---
-        const newChatBtn = document.getElementById('new-chat-btn');
-        const multiChatContainer = document.getElementById('multi-chat-container');
-        const chatTabsBar = document.getElementById('chat-tabs-bar');
         let chatCount = 0;
         let chats = [];
         let activeChatId = null;
@@ -431,16 +517,25 @@
                 }
             }
         }
-
+        
         function setActiveChat(chatId) {
             chats.forEach(chat => {
-                chat.window.style.display = (chat.id === chatId) ? 'flex' : 'none';
+                // Make sure to set display property for all chat windows
+                if (chat.id === chatId) {
+                    chat.window.style.display = 'flex';
+                } else {
+                    chat.window.style.display = 'none';
+                }
                 if (chat.tab) {
                     chat.tab.classList.toggle('bg-primary', chat.id === chatId);
                     chat.tab.classList.toggle('text-white', chat.id === chatId);
                     chat.tab.classList.toggle('text-primary', chat.id !== chatId);
                 }
             });
+            
+            // Update chat title in the header
+            document.getElementById('chat-title').textContent = chats.find(c => c.id === chatId)?.tab?.textContent || 'Research Assistant Chat';
+            
             activeChatId = chatId;
         }
 
@@ -466,7 +561,7 @@
                         <div class="flex-shrink-0 w-8 h-8 bg-primary/10 flex items-center justify-center rounded-full">
                             <i class="fas fa-robot text-primary"></i>
                         </div>
-                        <div class="bg-gray-50 rounded-2xl px-4 py-3 shadow-md max-w-2xl w-full text-base markdown-body" style="border-bottom-left-radius:0.5rem;">
+                        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl px-4 py-3 shadow-md max-w-2xl w-full text-base markdown-body" style="border-bottom-left-radius:0.5rem;">
                             <span>${escapeHtml(message)}</span>
                         </div>
                     </div>
@@ -484,22 +579,19 @@
                     '<': '&lt;',
                     '>': '&gt;',
                     '"': '&quot;',
-                    "'": '&#39;'
-                })[m];
+                    "'": '&#39;'                })[m];
             });
         }
-
-        newChatBtn.addEventListener('click', function() {
+        
+        function createNewChat() {
             chatCount++;
             const chatId = 'chat-' + chatCount;
-            // Create chat window
             const chatWindow = document.createElement('div');
             chatWindow.className = 'chat-window animate-fade-in flex flex-col h-[80vh]';
-            chatWindow.style.display = 'none';
-
-            // Chat window header with model select (like OpenWebUI/DeepSeek/ChatGPT)
+            // Don't set display:none initially - this will be controlled by setActiveChat
+            
             chatWindow.innerHTML = `
-                <div class="flex items-center gap-3 px-4 pt-4 pb-2 border-b bg-white/80 sticky top-0 z-10" style="backdrop-filter: blur(2px);">
+                <div class="flex items-center gap-3 px-4 pt-4 pb-2 border-b bg-white/80 dark:bg-gray-900/80 sticky top-0 z-10" style="backdrop-filter: blur(2px);">
                     <span class="font-semibold text-base text-gray-800 flex-1 truncate">Chat #${chatCount}</span>
                     <div class="flex items-center gap-2">
                         <label for="model-select-${chatId}" class="text-xs text-gray-500">Model:</label>
@@ -511,10 +603,18 @@
                             <i class="fas fa-chevron-down absolute right-2 top-2 text-gray-400 pointer-events-none text-xs"></i>
                         </div>
                     </div>
-                </div>
-                <div class="flex-1 overflow-y-auto mb-4 px-2 py-4 space-y-2" id="chat-messages-${chatId}"></div>
-                <div class="flex gap-2 items-end sticky bottom-0 bg-white pt-2 pb-4 px-2 z-10 shadow-lg rounded-xl" style="backdrop-filter: blur(2px);">
+                </div>                <div class="flex-1 overflow-y-auto mb-4 px-2 py-4 space-y-2" id="chat-messages-${chatId}"></div>
+                <div class="flex gap-2 items-end sticky bottom-0 bg-white dark:bg-gray-900 pt-2 pb-4 px-2 z-10 shadow-lg rounded-xl" style="backdrop-filter: blur(2px);">
+                    <div id="attachments-${chatId}" class="flex flex-wrap gap-1"></div>
                     <textarea id="message-input-${chatId}" rows="1" placeholder="Type your message..." class="flex-1 resize-none border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary bg-gray-50"></textarea>
+                    <button id="image-upload-btn-${chatId}" class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none" title="Attach image">
+                        <i class="fas fa-image"></i>
+                        <input type="file" id="image-upload-${chatId}" class="hidden" accept="image/*">
+                    </button>
+                    <button id="file-upload-btn-${chatId}" class="p-2 text-gray-400 hover:text-gray-600 focus:outline-none" title="Attach file">
+                        <i class="fas fa-paperclip"></i>
+                        <input type="file" id="file-upload-${chatId}" class="hidden">
+                    </button>
                     <button id="send-btn-${chatId}" type="button" class="bg-primary hover:bg-blue-700 text-white p-1.5 rounded-full w-9 h-9 flex items-center justify-center transition">
                         <i class="fas fa-paper-plane"></i>
                     </button>
@@ -522,12 +622,9 @@
             `;
             multiChatContainer.appendChild(chatWindow);
 
-            // Create tab
             const tab = createChatTab(chatId, `Chat #${chatCount}`);
-            chats.push({ id: chatId, window: chatWindow, tab, selectedModel: null });
-            setActiveChat(chatId);
-            chatWindow.style.display = 'flex';
-
+            chats.push({ id: chatId, window: chatWindow, tab, selectedModel: null });            setActiveChat(chatId);
+            
             // Now select elements from the DOM
             const modelSelect = chatWindow.querySelector(`#model-select-${chatId}`);
             const modelLoadingSpinner = chatWindow.querySelector(`#model-loading-spinner-${chatId}`);
@@ -556,7 +653,7 @@
             let autoScroll = true;
             const scrollBtn = document.createElement('button');
             scrollBtn.innerHTML = '<i class="fas fa-arrow-down"></i> Scroll to bottom';
-            scrollBtn.className = 'fixed left-1/2 -translate-x-1/2 bottom-24 z-20 bg-primary text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 transition opacity-0 pointer-events-none';
+            scrollBtn.className = 'fixed left-1/2 -translate-x-1/2 bottom-24 z-20 bg-primary text-white dark:bg-blue-600 dark:text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 transition opacity-0 pointer-events-none';
             scrollBtn.style.opacity = '0';
             scrollBtn.style.pointerEvents = 'none';
             scrollBtn.style.position = 'absolute';
@@ -672,12 +769,17 @@
                     if (!isStreaming) return handleSend();
                     cancelled = true;
                     controller.abort();
-                };
-
-                try {
+                };                try {
+                    // Get API key from localStorage if available
+                    const apiKey = localStorage.getItem('ollama-api-key');
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (apiKey) {
+                        headers['Authorization'] = `Bearer ${apiKey}`;
+                    }
+                    
                     const response = await fetch(ollamaEndpoint + '/api/generate', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: headers,
                         body: JSON.stringify({
                             model: selectedModel,
                             prompt: message,
@@ -745,40 +847,143 @@
                     e.preventDefault();
                     sendBtn.click();
                 }
+            });            // Apply theme to the new chat window
+            const theme = localStorage.getItem('ollama-theme') || 'system';
+            applyTheme(theme);
+            
+            // Set up attachment handling for this chat window
+            const imageUploadBtn = chatWindow.querySelector(`#image-upload-btn-${chatId}`);
+            const imageUploadInput = chatWindow.querySelector(`#image-upload-${chatId}`);
+            const fileUploadBtn = chatWindow.querySelector(`#file-upload-btn-${chatId}`);
+            const fileUploadInput = chatWindow.querySelector(`#file-upload-${chatId}`);
+            const attachmentsDiv = chatWindow.querySelector(`#attachments-${chatId}`);
+            
+            imageUploadBtn.addEventListener('click', () => imageUploadInput.click());
+            fileUploadBtn.addEventListener('click', () => fileUploadInput.click());
+            
+            imageUploadInput.addEventListener('change', function() {
+                attachmentsDiv.innerHTML = '';
+                Array.from(imageUploadInput.files).forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-1 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-xs';
+                    div.innerHTML = `<i class="fas fa-image text-gray-400"></i> ${file.name}`;
+                    attachmentsDiv.appendChild(div);
+                });
             });
-        });
-        // Create the first chat automatically on load
-        newChatBtn.click();
+            
+            fileUploadInput.addEventListener('change', function() {
+                attachmentsDiv.innerHTML = '';
+                Array.from(fileUploadInput.files).forEach(file => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-1 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-xs';
+                    div.innerHTML = `<i class="fas fa-paperclip text-gray-400"></i> ${file.name}`;
+                    attachmentsDiv.appendChild(div);
+                });
+            });
+        }
 
-        // Attachments logic (image/file upload in input area)
-        const imageUploadBtn = document.getElementById('image-upload-btn');
-        const imageUploadInput = document.getElementById('image-upload');
-        const fileUploadBtn = document.getElementById('file-upload-btn');
-        const fileUploadInput = document.getElementById('file-upload');
-        const attachmentsDiv = document.getElementById('attachments');
-        imageUploadBtn.addEventListener('click', () => imageUploadInput.click());
-        fileUploadBtn.addEventListener('click', () => fileUploadInput.click());
-        imageUploadInput.addEventListener('change', function() {
-            attachmentsDiv.innerHTML = '';
-            Array.from(imageUploadInput.files).forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-1 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-xs';
-                div.innerHTML = `<i class="fas fa-image text-gray-400"></i> ${file.name}`;
-                attachmentsDiv.appendChild(div);
-            });
-        });
-        fileUploadInput.addEventListener('change', function() {
-            attachmentsDiv.innerHTML = '';
-            Array.from(fileUploadInput.files).forEach(file => {
-                const div = document.createElement('div');
-                div.className = 'flex items-center gap-1 bg-gray-100 border border-gray-200 rounded px-2 py-1 text-xs';
-                div.innerHTML = `<i class="fas fa-paperclip text-gray-400"></i> ${file.name}`;
-                attachmentsDiv.appendChild(div);
-            });
-        });
+        // Ensure the correct reference to the "New Chat" button after DOM is loaded
+        function setupNewChatBtn() {
+            // Always get the latest button from the DOM
+            const btn = document.getElementById('new-chat-btn');
+            // Remove all previous event listeners by replacing the node
+            const newBtn = btn.cloneNode(true);
+            btn.parentNode.replaceChild(newBtn, btn);
+            newBtn.addEventListener('click', createNewChat);            newChatBtn = newBtn; // <--- FIX: update the global reference
+            return newBtn;
+        }
+          // Setup the new chat button and create the first chat after DOM is ready
+        const newChatBtnFixed = setupNewChatBtn();
+        // Make sure to create the first chat window immediately after DOM is loaded
+        createNewChat();
 
-        // Optionally: implement confirmation modal logic, etc.
-        // ...existing code for modals and other UI...
+        // --- Theme Switcher Logic ---
+        const htmlEl = document.documentElement;
+        const themeBtns = {
+            light: document.getElementById('theme-light-btn'),
+            dark: document.getElementById('theme-dark-btn'),
+            system: document.getElementById('theme-system-btn')
+        };
+        const themeDropdownBtn = document.getElementById('theme-dropdown-btn');
+        const themeDropdown = document.getElementById('theme-dropdown');
+
+        function applyTheme(theme) {
+            // Only toggle the 'dark' class on <html> and <body>
+            htmlEl.classList.remove('dark');
+            document.body.classList.remove('dark');
+            if (theme === 'dark') {
+                htmlEl.classList.add('dark');
+                document.body.classList.add('dark');
+            } else if (theme === 'system') {
+                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    htmlEl.classList.add('dark');
+                    document.body.classList.add('dark');
+                }
+            }
+            // Save theme
+            localStorage.setItem('ollama-theme', theme);
+            // Highlight selected button
+            Object.entries(themeBtns).forEach(([key, btn]) => {
+                btn.classList.toggle('bg-primary', theme === key);
+                btn.classList.toggle('text-white', theme === key);
+                btn.classList.toggle('bg-gray-50', theme !== key);
+                btn.classList.toggle('text-gray-700', theme !== key);
+            });
+            // Update all chat bubbles and containers for theme
+            document.querySelectorAll('.chat-window').forEach(win => {
+                win.querySelectorAll('.bg-primary').forEach(el => {
+                    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        el.classList.remove('bg-primary');
+                        el.classList.add('bg-primary', 'dark:bg-primary');
+                    } else {
+                        el.classList.add('bg-primary');
+                        el.classList.remove('dark:bg-primary');
+                    }
+                });
+                win.querySelectorAll('.bg-gray-50').forEach(el => {
+                    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        el.classList.remove('bg-gray-50');
+                        el.classList.add('dark:bg-gray-800');
+                    } else {
+                        el.classList.add('bg-gray-50');
+                        el.classList.remove('dark:bg-gray-800');
+                    }
+                });
+                win.querySelectorAll('.bg-white').forEach(el => {
+                    if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                        el.classList.remove('bg-white');
+                        el.classList.add('dark:bg-gray-900');
+                    } else {
+                        el.classList.add('bg-white');
+                        el.classList.remove('dark:bg-gray-900');
+                    }
+                });
+            });
+        }
+
+        // On load, use system if not set, and listen for system changes
+        let savedTheme = localStorage.getItem('ollama-theme');
+        if (!savedTheme) savedTheme = 'system';
+        applyTheme(savedTheme);
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+            if ((localStorage.getItem('ollama-theme') || 'system') === 'system') {
+                applyTheme('system');
+            }
+        });
+        themeBtns.light.addEventListener('click', () => applyTheme('light'));
+        themeBtns.dark.addEventListener('click', () => applyTheme('dark'));
+        themeBtns.system.addEventListener('click', () => applyTheme('system'));
+
+        // Dropdown show/hide logic for click (for accessibility)
+        themeDropdownBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', function(e) {
+            if (!themeDropdown.contains(e.target) && e.target !== themeDropdownBtn) {
+                themeDropdown.classList.add('hidden');
+            }
+        });
     });
     </script>
 </body>
